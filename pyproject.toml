@@ -1,0 +1,16 @@
+[project]
+name = "evalforge-ai"
+version = "0.1.0"
+description = "Offline LLM and RAG evaluation toolkit for groundedness, relevance, citations, and regression checks."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Harish Reddy" }]
+dependencies = []
+
+[project.scripts]
+evalforge = "evalforge.cli:main"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
