@@ -34,6 +34,24 @@ Run the smoke test:
 python scripts/smoke_test.py
 ```
 
+Run dataset linting only:
+
+```bash
+python -m src.evalforge.cli data/eval_cases.jsonl reports/report.html --lint-only
+```
+
+Generate HTML, JSON, and markdown reports:
+
+```bash
+python -m src.evalforge.cli data/eval_cases.jsonl reports/report.html --json reports/summary.json --markdown reports/report.md --allow-failures
+```
+
+Compare a candidate run against a baseline:
+
+```bash
+python -m src.evalforge.cli data/eval_cases.jsonl reports/report.html --baseline data/baseline_cases.jsonl --markdown reports/comparison.md --allow-failures
+```
+
 ## Input format
 
 Each JSONL row represents one evaluated AI response:
@@ -56,6 +74,21 @@ Each JSONL row represents one evaluated AI response:
 - **Citation score**: answer includes source/citation signals when context is used.
 - **Refusal score**: sensitive cases are escalated or refused correctly.
 - **Risk score**: flags unsupported claims, weak source coverage, and missed refusals.
+
+## CI quality gates
+
+EvalForge returns a non-zero exit code when:
+
+- any case has a `fail` verdict
+- average risk is higher than `--max-risk`
+- a baseline comparison detects regressions
+- dataset linting finds structural errors
+
+Use `--allow-failures` when generating reports for demos or exploratory analysis.
+
+## Dataset linting
+
+The linter checks for required fields, duplicate case IDs, empty questions or answers, wrong field types, very short answers, and missing context for non-refusal cases.
 
 ## Why this matters
 

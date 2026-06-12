@@ -8,21 +8,34 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from evalforge.runner import evaluate_cases, load_cases
 from evalforge.report import write_html_report
+from evalforge.compare import compare_summaries
+from evalforge.linting import lint_cases
+from evalforge.markdown import write_markdown_report
 
 
 def main() -> int:
     cases = load_cases(ROOT / "data" / "eval_cases.jsonl")
+    baseline_cases = load_cases(ROOT / "data" / "baseline_cases.jsonl")
+    assert not any(issue.severity == "error" for issue in lint_cases(cases))
+
     summary = evaluate_cases(cases)
+    baseline = evaluate_cases(baseline_cases)
+    comparison = compare_summaries(baseline, summary)
 
     assert summary.total == 4
     assert summary.passed >= 1
     assert summary.failed >= 1
     assert any(item.case["id"] == "unsupported-claim" for item in summary.cases)
+    assert comparison.improved >= 1
 
     output = ROOT / "reports" / "smoke_report.html"
     write_html_report(summary, output)
     assert output.exists()
     assert "EvalForge AI" in output.read_text(encoding="utf-8")
+
+    markdown_output = ROOT / "reports" / "smoke_report.md"
+    write_markdown_report(summary, markdown_output, comparison)
+    assert "Baseline Comparison" in markdown_output.read_text(encoding="utf-8")
 
     print("EvalForge smoke test passed")
     return 0
