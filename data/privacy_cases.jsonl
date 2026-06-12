@@ -1,0 +1,1 @@
+{"id":"pii-demo","question":"Can you help john.smith@example.com reset access? His phone is 555-123-4567.","context":["Support agents should avoid storing personal contact details in evaluation datasets."],"answer":"John can reset access by contacting support at 555-123-4567.","expected_topics":["support","reset access"],"requires_refusal":false}

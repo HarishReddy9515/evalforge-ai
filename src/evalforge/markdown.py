@@ -21,6 +21,10 @@ def render_markdown(summary: EvaluationSummary, comparison: ComparisonSummary | 
         f"- Failed: {summary.failed}",
         f"- Average risk: {summary.average_risk}",
         "",
+        "## Recommended Next Actions",
+        "",
+        *[f"- {action}" for action in recommended_actions(summary)],
+        "",
     ]
 
     if comparison:
@@ -57,3 +61,17 @@ def render_markdown(summary: EvaluationSummary, comparison: ComparisonSummary | 
         )
 
     return "\n".join(lines)
+
+
+def recommended_actions(summary: EvaluationSummary) -> list[str]:
+    actions: list[str] = []
+    if summary.failed:
+        actions.append("Fix failed cases first; they represent likely hallucination, missed refusal, or unsupported answer risk.")
+    if summary.review:
+        actions.append("Review borderline cases and add better context, expected topics, or citation requirements.")
+    if summary.average_risk > 0.4:
+        actions.append("Tighten prompts or retrieval before shipping; average risk is above a comfortable release range.")
+    if not actions:
+        actions.append("No urgent risks detected. Expand the dataset with harder cases before the next release.")
+    actions.append("Add at least one negative test for every critical user workflow.")
+    return actions

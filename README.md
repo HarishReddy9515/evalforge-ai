@@ -52,6 +52,18 @@ Compare a candidate run against a baseline:
 python -m src.evalforge.cli data/eval_cases.jsonl reports/report.html --baseline data/baseline_cases.jsonl --markdown reports/comparison.md --allow-failures
 ```
 
+Convert a CSV spreadsheet into JSONL:
+
+```bash
+python -m src.evalforge.importers data/eval_cases.csv reports/imported_cases.jsonl
+```
+
+Scan for private data and export a redacted copy:
+
+```bash
+python -m src.evalforge.cli data/privacy_cases.jsonl reports/privacy.html --redacted-jsonl reports/privacy_redacted.jsonl --allow-failures
+```
+
 ## Input format
 
 Each JSONL row represents one evaluated AI response:
@@ -89,6 +101,10 @@ Use `--allow-failures` when generating reports for demos or exploratory analysis
 ## Dataset linting
 
 The linter checks for required fields, duplicate case IDs, empty questions or answers, wrong field types, very short answers, and missing context for non-refusal cases.
+
+## Privacy scanning
+
+EvalForge scans questions, answers, and context for common sensitive data such as emails, phone numbers, SSNs, and credit-card-like numbers. Use `--redacted-jsonl` to create a safer copy before sharing reports or datasets.
 
 ## Why this matters
 

@@ -13,6 +13,7 @@ def write_html_report(summary: EvaluationSummary, output_path: Path) -> None:
 
 def render_html(summary: EvaluationSummary) -> str:
     cards = "\n".join(render_case(item.case, item.metrics) for item in summary.cases)
+    actions = "\n".join(f"<li>{escape(action)}</li>" for action in recommended_actions(summary))
     return f"""<!doctype html>
 <html lang="en">
 <head>
@@ -66,6 +67,13 @@ def render_html(summary: EvaluationSummary) -> str:
     .metric strong {{ display: block; font-size: 2rem; }}
     .metric span, .case small {{ color: var(--muted); font-weight: 800; }}
     .cases {{ display: grid; gap: 12px; }}
+    .actions {{
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: var(--panel);
+      padding: 18px;
+      margin-bottom: 18px;
+    }}
     .verdict {{
       display: inline-flex;
       border-radius: 999px;
@@ -97,6 +105,10 @@ def render_html(summary: EvaluationSummary) -> str:
       <article class="metric"><strong>{summary.failed}</strong><span>Failed</span></article>
       <article class="metric"><strong>{summary.average_risk}</strong><span>Avg risk</span></article>
     </section>
+    <section class="actions">
+      <h2>Recommended next actions</h2>
+      <ul>{actions}</ul>
+    </section>
     <section class="cases">
       {cards}
     </section>
@@ -123,3 +135,17 @@ def render_case(case: dict, metrics) -> str:
         <ul>{findings}</ul>
       </article>
     """
+
+
+def recommended_actions(summary: EvaluationSummary) -> list[str]:
+    actions: list[str] = []
+    if summary.failed:
+        actions.append("Fix failed cases first; they represent likely hallucination, missed refusal, or unsupported answer risk.")
+    if summary.review:
+        actions.append("Review borderline cases and add better context, expected topics, or citation requirements.")
+    if summary.average_risk > 0.4:
+        actions.append("Tighten prompts or retrieval before shipping; average risk is above a comfortable release range.")
+    if not actions:
+        actions.append("No urgent risks detected. Expand the dataset with harder cases before the next release.")
+    actions.append("Add at least one negative test for every critical user workflow.")
+    return actions

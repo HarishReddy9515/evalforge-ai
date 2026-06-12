@@ -7,6 +7,7 @@ import json
 from .compare import compare_summaries
 from .linting import has_errors, lint_cases
 from .markdown import write_markdown_report
+from .privacy import redact_cases, scan_cases
 from .report import write_html_report
 from .runner import evaluate_cases, load_cases, summary_to_json
 
@@ -19,6 +20,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--markdown", dest="markdown_output", help="Optional path to write markdown summary.")
     parser.add_argument("--baseline", help="Optional JSONL baseline cases for regression comparison.")
     parser.add_argument("--max-risk", type=float, default=0.5, help="Fail when average risk is above this threshold.")
+    parser.add_argument("--redacted-jsonl", help="Optional path to write a PII-redacted copy of the input dataset.")
+    parser.add_argument("--fail-on-pii", action="store_true", help="Return failure when PII is detected in evaluation data.")
     parser.add_argument("--allow-failures", action="store_true", help="Return success even when eval cases fail.")
     parser.add_argument("--lint-only", action="store_true", help="Only validate the dataset format.")
     return parser
@@ -30,16 +33,32 @@ def main(argv: list[str] | None = None) -> int:
 
     cases = load_cases(Path(args.input))
     issues = lint_cases(cases)
+    privacy_findings = scan_cases(cases)
     for issue in issues:
         print(f"{issue.severity.upper()} [{issue.case_id}] {issue.message}")
+    for finding in privacy_findings:
+        print(f"PRIVACY [{finding.case_id}] {finding.pii_type} detected in {finding.field}")
+
+    if args.redacted_jsonl:
+        redacted_cases = redact_cases(cases)
+        redacted_path = Path(args.redacted_jsonl)
+        redacted_path.parent.mkdir(parents=True, exist_ok=True)
+        redacted_path.write_text(
+            "\n".join(json.dumps(case, ensure_ascii=False) for case in redacted_cases) + "\n",
+            encoding="utf-8",
+        )
+        print(f"Redacted dataset: {args.redacted_jsonl}")
 
     if args.lint_only:
-        print(f"Linted {len(cases)} cases with {len(issues)} issue(s)")
-        return 1 if has_errors(issues) else 0
+        print(f"Linted {len(cases)} cases with {len(issues)} lint issue(s) and {len(privacy_findings)} privacy finding(s)")
+        return 1 if has_errors(issues) or (args.fail_on_pii and privacy_findings) else 0
 
     if has_errors(issues):
         print("Dataset has lint errors; evaluation stopped.")
         return 2
+    if args.fail_on_pii and privacy_findings:
+        print("Privacy findings detected; evaluation stopped because --fail-on-pii was set.")
+        return 3
 
     summary = evaluate_cases(cases)
     comparison = None
